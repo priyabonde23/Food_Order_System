@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foodie | Owner: Syntax Sieren</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --primary: #e03d4e; --dark: #1c1c1c; --whatsapp: #25D366; --instagram: #E1306C; }
+        body { margin: 0; font-family: 'Poppins', sans-serif; background: #f4f7f6; color: var(--dark); overflow-x: hidden; }
+
+        /* --- OVERLAYS --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.97); display: flex; justify-content: center; 
+            align-items: center; z-index: 9999; color: white; flex-direction: column; text-align: center;
+        }
+
+        .modal-content {
+            background: white; color: var(--dark); padding: 35px;
+            border-radius: 24px; width: 340px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .modal-content input { 
+            width: 90%; padding: 14px; margin-bottom: 15px; border: 2px solid #eee; border-radius: 12px; font-size: 16px;
+        }
+
+        /* --- SCRATCH CARD --- */
+        #scratch-container {
+            position: relative; width: 250px; height: 150px; margin: 20px auto;
+            background: #eee; border-radius: 15px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; color: var(--primary); font-size: 24px;
+        }
+        #scratch-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
+
+        /* --- SPIN WHEEL --- */
+        #wheel {
+            width: 280px; height: 280px; border-radius: 50%; border: 8px solid #fff;
+            position: relative; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+            overflow: hidden; margin: 20px 0;
+        }
+        .segment {
+            position: absolute; width: 50%; height: 50%; transform-origin: 100% 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: white; font-size: 10px; padding-bottom: 50px; box-sizing: border-box;
+        }
+
+        /* --- HEADER --- */
+        header { 
+            background: white; padding: 15px 5%; display: flex; align-items: center; 
+            justify-content: space-between; box-shadow: 0 2px 15px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100;
+        }
+        .logo-area { display: flex; flex-direction: column; text-align: left; }
+        .logo { font-size: 26px; font-weight: 800; color: var(--primary); }
+        .owner-name { font-size: 12px; color: #666; font-weight: 600; }
+        #search { width: 35%; padding: 10px 20px; border-radius: 20px; border: 1px solid #ddd; outline: none; }
+
+        /* --- MENU --- */
+        .main { display: flex; padding: 30px 5%; gap: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 20px; flex: 3; }
+        .card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; transition: 0.3s; display: flex; flex-direction: column; min-height: 320px; }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .card img { width: 100%; height: 180px; object-fit: cover; display: block; background-color: #f0f0f0; }
+        .card-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .card h3 { margin: 0; font-size: 17px; }
+        .card .price { color: var(--primary); font-weight: 800; font-size: 18px; display: block; margin: 8px 0; }
+        .card button { width: 100%; padding: 10px; border: none; background: var(--dark); color: white; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: auto; }
+        .card button:hover { background: var(--primary); }
+
+        .cart-panel { flex: 1; background: white; padding: 20px; border-radius: 20px; height: fit-content; position: sticky; top: 100px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+
+        /* --- BILL --- */
+        #bill-ui { background: white; color: black; padding: 20px; border-radius: 10px; width: 100%; max-width: 300px; text-align: left; font-family: monospace; border: 1px dashed #000; margin: 15px 0; font-size: 12px; }
+        .bill-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+
+        .btn-main { padding: 12px 30px; background: var(--primary); color: white; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .social-btn { display: block; width: 80%; margin: 10px auto; padding: 12px; border-radius: 12px; text-decoration: none; color: white; font-weight: 600; font-size: 14px; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #bill-ui, #bill-ui * { visibility: visible; }
+            #bill-ui { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+<audio id="spinAudio" src="https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3"></audio>
+<audio id="winAudio" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
+
+<div id="login-screen" class="overlay">
+    <div class="modal-content">
+        <h2 style="color:var(--primary)">Foodie App</h2>
+        <p>By <b>Syntax Sieren</b></p>
+        <input type="text" id="uName" placeholder="Full Name">
+        <input type="tel" id="uPhone" placeholder="Mobile Number">
+        <button class="btn-main" style="width: 100%;" onclick="startApp()">Enter Shop</button>
+    </div>
+</div>
+
+<div id="spin-screen" class="overlay" style="display:none;">
+    <h1 id="spinStatus">Lucky Spin! 🎡</h1>
+    <div id="wheel"></div>
+    <button class="btn-main" id="spinBtn" onclick="runSpin()">SPIN NOW</button>
+</div>
+
+<header>
+    <div class="logo-area">
+        <div class="logo">FOODIE</div>
+        <div class="owner-name">Owner: Syntax Sieren 🚀</div>
+    </div>
+    <input type="text" id="search" placeholder="Search dishes..." onkeyup="searchFood()">
+    <div id="userNameDisp" style="font-weight:600; color:var(--primary)">Guest</div>
+</header>
+
+<div class="main">
+    <div class="grid" id="menuArea"></div>
+    <div class="cart-panel">
+        <h3>My Bag 🛒</h3>
+        <div id="cartList" style="font-size:14px; margin-bottom:15px; color:#666;">Bag empty</div>
+        <hr style="border-top:1px solid #eee">
+        <div style="display:flex; justify-content:space-between; font-weight:800; font-size:18px;">
+            <span>Total:</span><span>₹<span id="totalPrice">0</span></span>
+        </div>
+        <button class="btn-main" style="width:100%; margin-top:20px;" onclick="checkout()">Checkout</button>
+    </div>
+</div>
+
+<div id="scratch-overlay" class="overlay" style="display:none;">
+    <div class="modal-content">
+        <h2>Scratch & Win! 🎁</h2>
+        <p>Scratch to reveal your special offer</p>
+        <div id="scratch-container">
+            <div id="scratch-text">₹100 OFF</div>
+            <canvas id="scratch-canvas" width="250" height="150"></canvas>
+        </div>
+        <button id="view-bill-btn" class="btn-main" style="display:none;" onclick="showBill()">View Bill 🧾</button>
+    </div>
+</div>
+
+<div id="bill-overlay" class="overlay" style="display:none;">
+    <div class="modal-content" style="width: 380px; max-height: 90vh; overflow-y: auto;">
+        <h2 style="color: #27ae60; margin:0;">Success! 🎉</h2>
+        <div id="bill-ui">
+            <center><b>FOODIE INVOICE</b></center>
+            <center style="font-size:10px">Managed by Syntax Sieren</center>
+            <hr style="border-top: 1px dashed #000">
+            <div id="billContent"></div>
+            <hr style="border-top: 1px dashed #000">
+            <div class="bill-row"><b>Total Payable:</b> <b id="billTotal"></b></div>
+            <hr style="border-top: 1px dashed #000">
+            <center style="font-size:10px; margin-top:10px;">COMPUTER GENERATED BILL.</center>
+        </div>
+        <button class="btn-main" onclick="window.print()">Print Bill 🖨️</button>
+        <button class="btn-main" style="background:#666; margin-top:10px;" onclick="showThankYou()">Finish</button>
+    </div>
+</div>
+
+<div id="thank-you-overlay" class="overlay" style="display:none;">
+    <div class="modal-content">
+        <h1 style="color:var(--primary); margin:0;">Thank You! ❤️</h1>
+        <p>Visit Again to <b>Foodie</b></p>
+        <p style="font-size:12px; color:#666;">By Syntax Sieren</p>
+        <hr style="margin:20px 0; opacity:0.2;">
+        <button class="btn-main" style="margin-top:20px; background:var(--dark);" onclick="location.reload()">New Order</button>
+    </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCY5wIFsAbAJB3cm9zIZNRkesh4LGFV_CI",
+    authDomain: "food-order-system-aaf56.firebaseapp.com",
+    projectId: "food-order-system-aaf56",
+    storageBucket: "food-order-system-aaf56.firebasestorage.app",
+    messagingSenderId: "80051926125",
+    appId: "1:80051926125:web:f752c242fd1fba735bbb64",
+    measurementId: "G-NND4L37ZLD"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.saveOrderToFirebase = async function(cartData) {
+    const name = document.getElementById('uName').value;
+    const phone = document.getElementById('uPhone').value;
+    const total = document.getElementById('totalPrice').innerText;
+
+    try {
+      await addDoc(collection(db, "orders"), {
+        customerName: name,
+        customerPhone: phone,
+        items: Object.values(cartData),
+        totalAmount: total,
+        spinReward: window.spinResult || "None",
+        scratchReward: window.scratchResult || "None",
+        orderDate: serverTimestamp()
+      });
+      console.log("Order Synced to Firebase!");
+    } catch (e) {
+      console.error("Error saving order: ", e);
+    }
+  }
+</script>
+
+<script>
+    const offers = [
+        { label: "10% OFF", color: "#e74c3c" },
+        { label: "FREE COKE", color: "#3498db" },
+        { label: "20% OFF", color: "#2ecc71" },
+        { label: "₹50 CASHBACK", color: "#f1c40f" },
+        { label: "50% OFF", color: "#9b59b6" }
+    ];
+    const scratchOffers = ["₹100 OFF", "30% OFF", "20% OFF", "FREE DESSERT"];
+    const foodData = [
+        { id:1, title:"Paneer Tikka Masala", price:250, img:"https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=800" },
+        { id:2, title:"Veg Dum Biryani", price:180, img:"https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=800" },
+        { id:3, title:"Double Cheese Pizza", price:299, img:"https://upload.wikimedia.org/wikipedia/commons/9/91/Pizza-3007395.jpg" },
+        { id:4, title:"Maharaja Burger", price:120, img:"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800" },
+        { id:5, title:"White Sauce Pasta", price:199, img:"https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=800" },
+        { id:6, title:"Crispy French Fries", price:99, img:"https://images.unsplash.com/photo-1576107232684-1279f390859f?w=800" },
+        { id:7, title:"Club Sandwich", price:140, img:"https://images.unsplash.com/photo-1553909489-cd47e0907980?w=800" },
+        { id:8, title:"Hakka Noodles", price:160, img:"https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800" },
+        { id:9, title:"Cold Coffee", price:110, img:"https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800" },
+        { id:10, title:"Brownie", price:150, img:"https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800" }
+    ];
+
+    let cart = {};
+    window.spinResult = "";
+    window.scratchResult = "";
+
+    const wheel = document.getElementById('wheel');
+    offers.forEach((opt, i) => {
+        const div = document.createElement('div');
+        div.className = 'segment';
+        div.style.backgroundColor = opt.color;
+        div.style.transform = `rotate(${i * 72}deg) skewY(-18deg)`;
+        div.innerHTML = `<span style="transform: skewY(18deg) rotate(36deg);">${opt.label}</span>`;
+        wheel.appendChild(div);
+    });
+
+    function startApp() {
+        if(!document.getElementById('uName').value) return alert("Enter Name");
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('spin-screen').style.display = 'flex';
+        document.getElementById('userNameDisp').innerText = "Hello, " + document.getElementById('uName').value;
+    }
+
+    function runSpin() {
+        document.getElementById('spinAudio').play();
+        const deg = 3600 + Math.floor(Math.random() * 3600);
+        wheel.style.transform = `rotate(${deg}deg)`;
+        document.getElementById('spinBtn').disabled = true;
+        setTimeout(() => {
+            document.getElementById('winAudio').play();
+            window.spinResult = offers[Math.floor(Math.random() * offers.length)].label;
+            document.getElementById('spinStatus').innerText = "Winner: " + window.spinResult;
+            setTimeout(() => {
+                document.getElementById('spin-screen').style.display = 'none';
+                renderItems(foodData);
+            }, 2000);
+        }, 4000);
+    }
+
+    function renderItems(data) {
+        document.getElementById('menuArea').innerHTML = data.map(i => `
+            <div class="card">
+                <img src="${i.img}" alt="${i.title}">
+                <div class="card-info">
+                    <h3>${i.title}</h3>
+                    <span class="price">₹${i.price}</span>
+                    <button onclick="add(${i.id})">Add to Bag</button>
+                </div>
+            </div>`).join('');
+    }
+
+    function add(id) {
+        const item = foodData.find(f => f.id === id);
+        if(cart[id]) cart[id].qty++; else cart[id] = {...item, qty:1};
+        updateCart();
+    }
+
+    function updateCart() {
+        let h = ""; let t = 0;
+        Object.values(cart).forEach(i => {
+            t += (i.price * i.qty);
+            h += `<div class="bill-row"><span>${i.title} x ${i.qty}</span><span>₹${i.price*i.qty}</span></div>`;
+        });
+        document.getElementById('cartList').innerHTML = h || "Bag empty";
+        document.getElementById('totalPrice').innerText = t;
+    }
+
+    function checkout() {
+        if(Object.keys(cart).length === 0) return alert("Empty Cart!");
+        
+        // Sync to Firebase Database
+        window.saveOrderToFirebase(cart);
+
+        document.getElementById('scratch-overlay').style.display = 'flex';
+        initScratch();
+    }
+
+    function initScratch() {
+        const canvas = document.getElementById('scratch-canvas');
+        const ctx = canvas.getContext('2d');
+        window.scratchResult = scratchOffers[Math.floor(Math.random() * scratchOffers.length)];
+        document.getElementById('scratch-text').innerText = window.scratchResult;
+        ctx.fillStyle = '#C0C0C0';
+        ctx.fillRect(0, 0, 250, 150);
+
+        let isDrawing = false;
+        const scratch = (e) => {
+            if(!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+            document.getElementById('view-bill-btn').style.display = 'block';
+        };
+        canvas.onmousedown = canvas.ontouchstart = () => isDrawing = true;
+        canvas.onmouseup = canvas.ontouchend = () => isDrawing = false;
+        canvas.onmousemove = canvas.ontouchmove = scratch;
+    }
+
+    function showBill() {
+        document.getElementById('scratch-overlay').style.display = 'none';
+        document.getElementById('bill-overlay').style.display = 'flex';
+        const now = new Date();
+        let billHtml = `<div class="bill-row"><span>Date:</span> <span>${now.toLocaleDateString()}</span></div>`;
+        billHtml += `<div class="bill-row"><span>Customer:</span> <span>${document.getElementById('uName').value}</span></div><hr style="border-top: 1px dashed #000">`;
+        Object.values(cart).forEach(i => {
+            billHtml += `<div class="bill-row"><span>${i.title} (x${i.qty})</span> <span>₹${i.price*i.qty}</span></div>`;
+        });
+        document.getElementById('billContent').innerHTML = billHtml;
+        document.getElementById('billTotal').innerText = "₹" + document.getElementById('totalPrice').innerText;
+    }
+
+    function showThankYou() {
+        document.getElementById('bill-overlay').style.display = 'none';
+        document.getElementById('thank-you-overlay').style.display = 'flex';
+    }
+
+    function searchFood() {
+        const q = document.getElementById('search').value.toLowerCase();
+        renderItems(foodData.filter(f => f.title.toLowerCase().includes(q)));
+    }
+</script>
+</body>
+</html>
