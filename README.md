@@ -46,3 +46,12 @@ Backend and database are managed using Firebase.
 👤 Author
 
 - Priya Bonde
+
+
+📸 Output Screenshot
+![Screenshot 1](Screenshot1.png)
+![Screenshot 2](Screenshot2.png)
+![Screenshot 3](Screenshot3.png)
+![Screenshot 4](Screenshot4.png)
+![Screenshot 5](Screenshot5.png)
+
